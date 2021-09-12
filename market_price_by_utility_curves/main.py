@@ -4,6 +4,8 @@
 # and the optimal distribution can be found greedily, by proof by contradiction
 # -> suppose it were false. then, you skipped someone all the way till the end, and gave a battery to someone who gained lower utility (and thus would lose less utility than the skipped person would gain from buying). thus, there's a mutually beneficial trade, so this must not be the optimal solution. so you must not have skipped anyone.
 
+# why is the hardware store equivalent? because you are just adding another player whose utility curve is 0. we were told that the initial distribution doesn't for the final total utility, and the hardware store owner won't have any batteries remaining so they don't affect the supply
+
 from queue import PriorityQueue
 
 UTILITY_CURVES = [
@@ -34,26 +36,44 @@ def populate_queue():
         pq.put([-curve(0), i])
     return pq
 
-def simulate(total_batteries):
+def simulate():
     num_batteries = [0]*len(UTILITY_CURVES)
     tot_utility = [0]*len(UTILITY_CURVES)
     pq = populate_queue()
-    recent_sale = 0
-    second_recent_sale = 0
-    for n in range(total_batteries):
-        got, i = pq.get()
-        if got != recent_sale:
-            second_recent_sale = recent_sale
-        recent_sale = got
+    # for n in range(total_batteries):
+    while True:
+        recent_sale, i = pq.get()
+        if recent_sale == 0:
+            break
 
         tot_utility[i] -= recent_sale
         num_batteries[i] += 1
-        print(f"player {i+1:2d} gets battery {n+1:2d} for {-recent_sale:3d}, now has {num_batteries[i]} batteries and {tot_utility[i]:3d} utility.")
+        yield (i, -recent_sale, num_batteries[i], tot_utility[i])
+        # print(f"player {i+1:2d} gets battery {n+1:2d} for {-recent_sale:3d}, now has {num_batteries[i]} batteries and {tot_utility[i]:3d} utility.")
 
         next_gained_util = max(UTILITY_CURVES[i](num_batteries[i]), 0)
         pq.put([-next_gained_util, i])
 
-    print(f"final sale was at most {-second_recent_sale} and at least {-recent_sale}")
 
 if __name__ == '__main__':
-    simulate(50)
+    # free batteries
+    # for i, (player, gain, num, util) in enumerate(simulate()):
+    #     print(f"player {player+1:2d} gets battery {i+1:2d} for {gain:3d}, now has {num} batteries and {util:3d} utility.")
+
+    # find best price
+    recent_sale = 0
+    second_recent_sale = 0
+    for i, (player, gain, num, util) in enumerate(simulate()):
+        if gain != recent_sale:
+            second_recent_sale = recent_sale
+        recent_sale = gain
+        if i > 50:
+            break
+        # print(f"player {player+1:2d} gets battery {i+1:2d} for {gain:3d}, now has {num} batteries and {util:3d} utility.")
+    print(f"the market price for 50 batteries is between {recent_sale} and {second_recent_sale} utility")
+
+    # find how many
+    for i, (player, gain, num, util) in enumerate(simulate()):
+        if gain < 40:
+            print(f"at 40 utility a battery, you would sell {i} batteries")
+            break
